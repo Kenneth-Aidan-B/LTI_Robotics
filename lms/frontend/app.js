@@ -49,7 +49,7 @@ form?.addEventListener('submit',async e=>{
  const cfg=window.LTI_CONFIG||{};
  const text=`NEW LTI ROBOTICS LEAD\n\nName: ${lead.name}\nPhone: ${lead.phone} (tel:${lead.phone})\nEmail: ${lead.email} (reply-to)\nGrade: ${lead.grade}\nLevel: ${lead.level}\nSchool: ${lead.school||'-'}\nMsg: ${lead.message||'-'}\nAt: ${lead.at}\nPage: ${lead.page}`;
  let sent={lms:false,ext:false};
- try{const r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:lead.name,phone:lead.phone,email:lead.email,grade:lead.grade,level:lead.level,school:lead.school,message:lead.message})});sent.lms=r.ok}catch{}
+  try{const apiBase=String(cfg.LMS_API_BASE||'').replace(/\/$/,'');const r=await fetch(apiBase+'/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:lead.name,phone:lead.phone,email:lead.email,grade:lead.grade,level:lead.level,school:lead.school,message:lead.message})});sent.lms=r.ok}catch{}
  try{if(cfg.BACKEND_URL){const r=await fetch(cfg.BACKEND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...lead,replyTo:lead.email})});sent.ext=r.ok}}catch(err){console.warn('ext lead failed',err)}
  if(!sent.lms&&!sent.ext){try{const k='lti_leads';const arr=JSON.parse(localStorage.getItem(k)||'[]');if(!arr.some(x=>x.email===lead.email&&x.phone===lead.phone))arr.push(lead);localStorage.setItem(k,JSON.stringify(arr.slice(-50)))}catch{}}
  const adm=cfg.ADMISSIONS_EMAIL||'lti4official26@gmail.com';

@@ -20,6 +20,7 @@ input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px soli
 <div class="panel"><h2>Users</h2><div id="users">…</div></div>
 <div class="panel"><h2>Announce</h2><div class="row"><input id="aT" placeholder="Title"><input id="aB" placeholder="Body"></div><button class="btn gold sm" onclick="announce()">Publish →</button></div>
 </div>
+<script src="config.js"></script>
 <script src="lms.js"></script>
 <script>
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
