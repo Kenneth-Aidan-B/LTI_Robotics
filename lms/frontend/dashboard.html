@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learner Dashboard — LTI LMS</title><link rel="stylesheet" href="styles.css"><style>
+.wrap{max-width:1100px;margin:auto;padding:26px 20px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px}
+.bar{height:10px;background:#1a2c55;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#FFD34D,#FF9D00)}
+.sess{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.sess label{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);padding:7px 10px;border-radius:10px;font-size:12px}
+.cert{background:rgba(55,255,139,.12);border:1px solid rgba(55,255,139,.5);padding:10px;border-radius:12px;margin-top:10px;font-weight:800}
+@media(max-width:900px){.cards{grid-template-columns:1fr}}
+</style></head><body>
+<div class="orb orb-1"></div><div class="grid-bg"></div>
+<header id="nav"><div class="nav-inner"><a class="brand" href="index.html"><div class="brand-mark">LT<span>I</span></div><div class="brand-text"><strong>LEARNER</strong><small id="who">…</small></div></a>
+<div class="nav-cta"><a class="btn ghost sm" href="index.html">Site</a><button class="btn gold sm" onclick="LMS.logout()">Logout</button></div></div></header>
+<div class="wrap">
+<h1>My Learning</h1><p id="sub" style="color:#9AA8C7">Grades 4+ · 9+ builds · track every session</p>
+<h2>Available courses</h2><div id="courses" class="cards"></div>
+<h2 style="margin-top:26px">My enrollments</h2><div id="mine" class="cards"></div>
+<h2 style="margin-top:26px">Announcements</h2><div id="ann" class="cards"></div>
+</div>
+<script src="lms.js"></script>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const u=LMS.guard(); if(!u){document.body.innerHTML='<p style="padding:40px">Redirecting to login…</p>';throw new Error('redirect')}
+who.textContent=u.name+' · '+u.email;
+async function load(){
+ try{
+ const cs=await LMS.api('/api/courses'); const mine=await LMS.api('/api/my-enrollments'); const ann=await LMS.api('/api/announcements');
+ const mineIds=new Set(mine.map(e=>e.course_id));
+ courses.innerHTML=cs.map(c=>`<div class="card"><h3>${esc(c.title)}</h3><p style="color:#9AA8C7">${esc(c.subtitle)}</p><p>${c.sessions} sessions · ${esc(c.coding)}</p><p style="font-size:13px">${esc((c.builds||[]).slice(0,5).join(' · '))}${(c.builds||[]).length>5?' +more':''}</p>${mineIds.has(c.id)?'<button class="btn ghost sm" disabled>Enrolled ✓</button>':`<button class="btn gold sm" data-enroll="${esc(c.id)}">Enroll →</button>`}</div>`).join('');
+ courses.querySelectorAll('[data-enroll]').forEach(b=>b.onclick=()=>enroll(b.dataset.enroll));
+ mine.innerHTML=mine.length?mine.map(e=>{const prog=Array.isArray(e.progress)?e.progress:[];const pct=Math.min(100,Math.max(0,Math.round(e.pct||0)));const boxes=(e.weeks||[]).map((w,i)=>`<label><input type="checkbox" ${prog.includes(i)?'checked':''} onchange="toggle(${e.id},${i},this)"> W${i+1}</label>`).join('');
+  return `<div class="card"><h3>${esc(e.title)}</h3><div class="bar"><i style="width:${pct}%"></i></div><p>${pct}% · ${prog.length}/${e.sessions}</p>${e.certificate?`<div class="cert">CERTIFICATE UNLOCKED — ${esc(e.title)}<br><small>Show this at showcase + download as proof</small></div>`:''}<div class="sess">${boxes}</div><p style="font-size:12px;color:#9AA8C7">${(e.weeks||[]).map((w,i)=>`W${i+1}: ${esc(w)}`).join('<br>')}</p></div>`}).join(''):'<div class="card">No enrollments yet — enroll above.</div>';
+ ann.innerHTML=ann.length?ann.map(a=>`<div class="card"><b>${esc(a.title)}</b><p>${esc(a.body)}</p></div>`).join(''):'<div class="card">No announcements.</div>';
+ window._mine=mine;
+ }catch(err){if(/401|403/.test(err.message)){LMS.logout()}else{mine.innerHTML='<div class="card">Load failed: '+esc(err.message)+'</div>'}}
+}
+}
+async function enroll(id){try{await LMS.api('/api/enroll',{method:'POST',body:JSON.stringify({course_id:id})});load()}catch(e){alert(e.message)}}
+async function toggle(eid,idx,el){try{el.disabled=true;const e=window._mine.find(x=>x.id===eid);let done=new Set(e.progress);el.checked?done.add(idx):done.delete(idx);await LMS.api(`/api/enrollments/${eid}/progress`,{method:'POST',body:JSON.stringify({done:[...done]})});load()}catch(e){alert(e.message);load()}}
+load();
+</script></body></html>

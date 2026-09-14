@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — LTI LMS</title><link rel="stylesheet" href="styles.css"><style>
+.wrap{max-width:1200px;margin:auto;padding:26px 20px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;text-align:center}
+.kpi b{font-size:28px;display:block;color:#FFC531}table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid rgba(255,255,255,.1);padding:9px;text-align:left;vertical-align:top}
+.panel{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:18px;margin-top:16px}
+input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #33415e;background:#0A1931;color:#fff;margin:5px 0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}}
+</style></head><body>
+<div class="orb orb-1"></div><div class="grid-bg"></div>
+<header id="nav"><div class="nav-inner"><a class="brand" href="index.html"><div class="brand-mark">LT<span>I</span></div><div class="brand-text"><strong>ADMIN</strong><small id="who">…</small></div></a>
+<div class="nav-cta"><a class="btn ghost sm" href="dashboard.html">Learner view</a><button class="btn gold sm" onclick="LMS.logout()">Logout</button></div></div></header>
+<div class="wrap">
+<h1>Command Center</h1>
+<div class="grid" id="kpi"></div>
+<div class="panel"><h2>Leads — call / reply</h2><div id="leads">…</div></div>
+<div class="panel"><h2>Enrollments</h2><div id="enr">…</div></div>
+<div class="panel"><h2>Users</h2><div id="users">…</div></div>
+<div class="panel"><h2>Announce</h2><div class="row"><input id="aT" placeholder="Title"><input id="aB" placeholder="Body"></div><button class="btn gold sm" onclick="announce()">Publish →</button></div>
+</div>
+<script src="lms.js"></script>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const u=LMS.guard('admin'); if(!u){document.body.innerHTML='<p style="padding:40px">Redirecting…</p>';throw new Error('redirect')} who.textContent=u.name;
+async function load(){
+ try{
+ const s=await LMS.api('/api/admin/stats');
+ kpi.innerHTML=[['Users',s.users],['Learners',s.learners],['Enrollments',s.enrollments],['Leads',s.leads],['New leads',s.new_leads]].map(x=>`<div class="kpi"><b>${x[1]}</b>${x[0]}</div>`).join('');
+ const ls=await LMS.api('/api/admin/leads');
+ leads.innerHTML=`<div class="tbl-wrap"><table><tr><th>ID</th><th>Lead</th><th>Contact (tap)</th><th>Grade/Level</th><th>Status</th></tr>${ls.map(l=>{const tel=String(l.phone||'').replace(/[^+\d]/g,'');return `<tr><td>${l.id}</td><td><b>${esc(l.name)}</b><br>${esc(l.school||'')}<br><small>${esc(l.message||'')}</small></td><td><a style="color:#FFC531" href="tel:${encodeURIComponent(tel)}">📞 ${esc(l.phone)}</a><br><a style="color:#37E0FF" href="mailto:${encodeURIComponent(l.email)}?subject=Re:%20LTI%20Robotics%20enquiry">✉️ ${esc(l.email)}</a></td><td>${esc(l.grade)}<br>${esc(l.level)}</td><td><select data-id="${l.id}" aria-label="Lead status">${['new','contacted','enrolled','closed'].map(st=>`<option value="${st}" ${st===l.status?'selected':''}>${st}</option>`).join('')}</select></td></tr>`}).join('')}</table></div>`;
+ leads.querySelectorAll('select').forEach(sel=>sel.onchange=()=>setLead(sel.dataset.id,sel.value,sel));
+ const es=await LMS.api('/api/admin/enrollments');
+ enr.innerHTML=`<div class="tbl-wrap"><table><tr><th>ID</th><th>Learner</th><th>Course</th><th>Status</th></tr>${es.map(e=>`<tr><td>${e.id}</td><td>${esc(e.name)}<br><small>${esc(e.email)}</small></td><td>${esc(e.title)}</td><td>${esc(e.status)}</td></tr>`).join('')}</table></div>`;
+ const us=await LMS.api('/api/admin/users');
+ users.innerHTML=`<div class="tbl-wrap"><table><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Grade</th></tr>${us.map(x=>`<tr><td>${x.id}</td><td>${esc(x.name)}</td><td>${esc(x.email)}</td><td>${esc(x.role)}</td><td>${esc(x.grade)}</td></tr>`).join('')}</table></div>`;
+ }catch(e){if(/401|403/.test(e.message)){LMS.logout()}else{leads.innerHTML='Load failed: '+esc(e.message)}}
+}
+async function setLead(id,st,el){try{await LMS.api(`/api/admin/leads/${id}`,{method:'POST',body:JSON.stringify({status:st})});load()}catch(e){alert(e.message);load()}}
+async function announce(){const t=aT.value.trim(),b=aB.value.trim();if(!t){alert('Enter title');return}try{await LMS.api('/api/announcements',{method:'POST',body:JSON.stringify({title:t,body:b})});aT.value=aB.value='';alert('Published');load()}catch(e){alert(e.message)}}
+load();
+</script></body></html>

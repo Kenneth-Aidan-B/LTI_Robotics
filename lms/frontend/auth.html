@@ -1,0 +1,32 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LTI LMS — Login / Register</title><link rel="stylesheet" href="styles.css"><style>
+.auth-wrap{max-width:480px;margin:60px auto;padding:0 20px}.auth-card{background:#fff;color:#0A1931;border-radius:22px;padding:28px}
+.auth-card input,.auth-card select{width:100%;padding:13px;border-radius:12px;border:1.5px solid #D6DEEF;margin:6px 0 12px;font-size:14px}
+.auth-tabs{display:flex;gap:8px;margin-bottom:14px}.auth-tabs button{flex:1;padding:12px;border-radius:99px;border:1px solid #D6DEEF;font-weight:800;cursor:pointer}
+.auth-tabs button.on{background:#0A1931;color:#FFC531}.msg{min-height:22px;font-weight:800}.msg.err{color:#B42318}.msg.ok{color:#0A7A3B}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style></head><body>
+<div class="orb orb-1"></div><div class="grid-bg"></div>
+<div class="auth-wrap"><div class="auth-card">
+<div style="text-align:center"><div class="brand-mark" style="margin:auto">LT<span>I</span></div><h2>LTI Robotics LMS</h2><p style="color:#5A6B8C">Learner & Admin login · Grades 4+</p></div>
+<div class="auth-tabs" role="tablist"><button id="tLogin" type="button" role="tab" aria-selected="true" class="on">Login</button><button id="tReg" type="button" role="tab" aria-selected="false">Register</button></div>
+<div id="fLogin"><label class="sr-only" for="liEmail">Email</label><input id="liEmail" type="email" autocomplete="email" placeholder="Email"><label class="sr-only" for="liPass">Password</label><input id="liPass" type="password" autocomplete="current-password" placeholder="Password">
+<button class="btn gold lg full" type="button" id="bLogin" style="width:100%">Login →</button>
+<p style="font-size:12px;color:#5A6B8C">Demo learner: demo@learner.local / Demo@123 · Admin seeded via LTI_ADMIN_EMAIL</p></div>
+<div id="fReg" style="display:none"><label class="sr-only" for="rName">Full name</label><input id="rName" autocomplete="name" placeholder="Full name"><label class="sr-only" for="rEmail">Email</label><input id="rEmail" type="email" autocomplete="email" placeholder="Email">
+<label class="sr-only" for="rPhone">Phone</label><input id="rPhone" type="tel" autocomplete="tel" placeholder="Phone"><label class="sr-only" for="rPass">Password</label><input id="rPass" type="password" autocomplete="new-password" placeholder="Password (min 6)">
+<label class="sr-only" for="rGrade">Grade</label><input id="rGrade" placeholder="Grade e.g. Grade 6"><label class="sr-only" for="rSchool">School</label><input id="rSchool" placeholder="School">
+<label class="sr-only" for="rCode">Admin code</label><input id="rCode" placeholder="Admin code (only for staff)">
+<button class="btn gold lg full" type="button" id="bReg" style="width:100%">Create account →</button></div>
+<p id="msg" class="msg" role="status" aria-live="polite"></p><p><a href="index.html" style="color:#1E5BFF">← Back to site</a></p>
+</div></div>
+<script src="lms.js"></script>
+<script>
+if(LMS.token&&LMS.user){location.href=LMS.user.role==='admin'?'admin.html':'dashboard.html'}
+const m=document.getElementById('msg');
+tLogin.onclick=()=>{tLogin.classList.add('on');tReg.classList.remove('on');tLogin.setAttribute('aria-selected','true');tReg.setAttribute('aria-selected','false');fLogin.style.display='';fReg.style.display='none'};
+tReg.onclick=()=>{tReg.classList.add('on');tLogin.classList.remove('on');tReg.setAttribute('aria-selected','true');tLogin.setAttribute('aria-selected','false');fReg.style.display='';fLogin.style.display='none'};
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){if(fReg.style.display==='none'){bLogin.click()}else{bReg.click()}}});
+bLogin.onclick=async()=>{const email=liEmail.value.trim().toLowerCase(),password=liPass.value;if(!email||!password){m.className='msg err';m.textContent='Enter email + password.';return}m.className='msg';m.textContent='…';bLogin.disabled=true;try{const d=await LMS.api('/api/login',{method:'POST',body:JSON.stringify({email,password})});LMS.token=d.token;LMS.user=d.user;m.className='msg ok';m.textContent='Welcome '+d.user.name;location.href=d.user.role==='admin'?'admin.html':'dashboard.html'}catch(e){m.className='msg err';m.textContent=e.message}finally{bLogin.disabled=false}};
+bReg.onclick=async()=>{const name=rName.value.trim(),email=rEmail.value.trim().toLowerCase();if(!name||!email||rPass.value.length<6){m.className='msg err';m.textContent='Enter name, valid email, password min 6.';return}m.className='msg';m.textContent='…';bReg.disabled=true;try{const d=await LMS.api('/api/register',{method:'POST',body:JSON.stringify({name,email,phone:rPhone.value.trim(),password:rPass.value,grade:rGrade.value.trim(),school:rSchool.value.trim(),admin_code:rCode.value.trim()})});LMS.token=d.token;LMS.user=d.user;m.className='msg ok';m.textContent='Account created';location.href=d.user.role==='admin'?'admin.html':'dashboard.html'}catch(e){m.className='msg err';m.textContent=e.message}finally{bReg.disabled=false}};
+</script></body></html>
